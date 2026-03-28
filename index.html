@@ -369,20 +369,24 @@
     (function() {
         const SUPABASE_URL = 'https://tzsatbviltcvelicbxoa.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6c2F0YnZpbHRjdmVsaWNieG9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1MzAsImV4cCI6MjA5MDMwOTUzMH0.y8TxI5GFeKPgtXnkJ8Z83O0C7pJHvWCZVtJo2Oon6xw';
+        const IGNORED_IPS = ['128.2.149.230'];
         if (sessionStorage.getItem('oasis_tracked')) return;
-        fetch(SUPABASE_URL + '/rest/v1/sites?deployment_url=eq.' + encodeURIComponent(window.location.origin) + '&select=id,view_count', {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-        })
-        .then(r => r.json())
-        .then(sites => {
-            if (sites && sites[0]) {
-                fetch(SUPABASE_URL + '/rest/v1/sites?id=eq.' + sites[0].id, {
-                    method: 'PATCH',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ viewed: true, view_count: (sites[0].view_count || 0) + 1 })
-                });
-                sessionStorage.setItem('oasis_tracked', '1');
-            }
+        fetch('https://api.ipify.org?format=json').then(r => r.json()).then(data => {
+            if (IGNORED_IPS.includes(data.ip)) return;
+            fetch(SUPABASE_URL + '/rest/v1/sites?deployment_url=eq.' + encodeURIComponent(window.location.origin) + '&select=id,view_count', {
+                headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+            })
+            .then(r => r.json())
+            .then(sites => {
+                if (sites && sites[0]) {
+                    fetch(SUPABASE_URL + '/rest/v1/sites?id=eq.' + sites[0].id, {
+                        method: 'PATCH',
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ viewed: true, view_count: (sites[0].view_count || 0) + 1 })
+                    });
+                    sessionStorage.setItem('oasis_tracked', '1');
+                }
+            });
         }).catch(() => {});
     })();
     </script>
