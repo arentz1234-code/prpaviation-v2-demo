@@ -365,28 +365,35 @@
 
     <script src="js/main.js"></script>
     <script>
-    // Oasis View Tracking - Internal vs Client
+    // Oasis View Tracking
     (function() {
-        const SUPABASE_URL = 'https://qqbwhozixcbmdlslgklv.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxYndob3ppeGNibWRsc2xna2x2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNzAxNzcsImV4cCI6MjA1ODk0NjE3N30.yFWTRnDluPAByGOMnpeXkOtIpbHkCnANaWJok8p6VNw';
+        const SUPABASE_URL = 'https://tzsatbviltcvelicbxoa.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6c2F0YnZpbHRjdmVsaWNieG9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1MzAsImV4cCI6MjA5MDMwOTUzMH0.y8TxI5GFeKPgtXnkJ8Z83O0C7pJHvWCZVtJo2Oon6xw';
         const INTERNAL_IPS = ['128.2.149.230'];
         if (sessionStorage.getItem('oasis_tracked')) return;
         fetch('https://api.ipify.org?format=json').then(r => r.json()).then(data => {
             const isInternal = INTERNAL_IPS.includes(data.ip);
-            fetch(SUPABASE_URL + '/rest/v1/sites?deployment_url=eq.' + encodeURIComponent(window.location.origin) + '&select=id,internal_views,client_views', {
+            fetch(SUPABASE_URL + '/rest/v1/sites?deployment_url=eq.' + encodeURIComponent(window.location.origin) + '&select=id,view_count,internal_views,client_views', {
                 headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
             })
             .then(r => r.json())
             .then(sites => {
                 if (sites && sites[0]) {
-                    const updateData = isInternal
-                        ? { internal_views: (sites[0].internal_views || 0) + 1 }
-                        : { client_views: (sites[0].client_views || 0) + 1, viewed: true };
-                    fetch(SUPABASE_URL + '/rest/v1/sites?id=eq.' + sites[0].id, {
-                        method: 'PATCH',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updateData)
-                    });
+                    var s = sites[0], updateData = {};
+                    if (s.internal_views !== undefined) {
+                        if (isInternal) updateData.internal_views = (s.internal_views || 0) + 1;
+                        else { updateData.client_views = (s.client_views || 0) + 1; updateData.viewed = true; }
+                    } else if (!isInternal) {
+                        updateData.viewed = true;
+                        updateData.view_count = (s.view_count || 0) + 1;
+                    }
+                    if (Object.keys(updateData).length > 0) {
+                        fetch(SUPABASE_URL + '/rest/v1/sites?id=eq.' + s.id, {
+                            method: 'PATCH',
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updateData)
+                        });
+                    }
                     sessionStorage.setItem('oasis_tracked', '1');
                 }
             });
